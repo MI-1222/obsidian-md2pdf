@@ -1,0 +1,11 @@
+{
+  "name": "obsidian-md2pdf",
+  "version": "0.0.0",
+  "description": "独自の機能を盛り込んだobsidianのpdfエクスポートのプラグイン。",
+  "license": "ISC",
+  "author": "MI-1222",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+  }
+}
