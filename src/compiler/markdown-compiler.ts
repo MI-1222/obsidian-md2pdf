@@ -23,7 +23,7 @@ function highlightCode(code: string, language: string): string {
     try {
       return hljs.highlight(code, { language, ignoreIllegals: true }).value;
     } catch {
-      // ハイライト失敗時はフォールバック。
+      return "";
     }
   }
   return "";
@@ -61,19 +61,23 @@ export function resolveIncludes(
   fileReader: (filePath: string) => string,
   processed: Set<string> = new Set()
 ): string {
-  // 1. !!!include(path)!!! 構文の正規表現。
+  /** !!!include(path)!!! 構文の正規表現。 */
   const includeRe1 = /!{3}\s*include\s*\(([^)]+)\)\s*!{3}/gi;
-  // 2. :[alt](path) 構文の正規表現。
+  /** :[alt](path) 構文の正規表現。 */
   const includeRe2 = /:\[(?:[^\]]*)\]\(([^)]+)\)/g;
 
+  /** インクルード置換ハンドラ関数。 */
   const replaceHandler = (_match: string, filePath: string): string => {
+    /** トリム済みファイルパス。 */
     const trimmedPath = filePath.trim();
     if (processed.has(trimmedPath)) {
       return `<!-- Circular include detected: ${trimmedPath} -->`;
     }
 
     try {
+      /** インクルード対象ファイル本文。 */
       const content = fileReader(trimmedPath);
+      /** 循環参照検出用パスセット。 */
       const nextProcessed = new Set(processed);
       nextProcessed.add(trimmedPath);
       return resolveIncludes(content, fileReader, nextProcessed);
@@ -89,6 +93,7 @@ export function resolveIncludes(
 
 import { processMermaidPlaceholders } from "./renderers/mermaid";
 import { processPlantUmlBlocks, renderPlantUmlToHtml } from "./renderers/plantuml";
+import { processTikzPlaceholders } from "./renderers/tikz";
 
 /** markdown-it コアエンジンおよび各種拡張プラグインを統合した Markdown コンパイラクラス。 */
 export class MarkdownCompiler {
@@ -123,12 +128,13 @@ export class MarkdownCompiler {
    * - タスクリスト / チェックボックス (- [ ] / - [x])
    * - 見出しアンカー ID (Named Headers)
    * - カスタムコンテナ (::: warning 等)
-   * - Mermaid / PlantUML フェンスブロックのレンダリング。
+   * - Mermaid / PlantUML / TikZ フェンスブロックのレンダリング。
    *
    * @param options - コンパイラオプション。
    * @returns 初期化された MarkdownIt インスタンス。
    */
   private createMarkdownItInstance(options: MarkdownCompilerOptions): MarkdownItInstance {
+    /** markdown-it インスタンス。 */
     const md = new MarkdownIt({
       html: options.html ?? true,
       linkify: options.linkify ?? true,
@@ -137,29 +143,24 @@ export class MarkdownCompiler {
       highlight: highlightCode,
     });
 
-    // 数式レンダリングプラグイン (MathJax3)
     if (markdownItMathjax3) {
       md.use(markdownItMathjax3);
     }
 
-    // GitHub スタイルアラート (> [!NOTE] 等)
     if (markdownItGithubAlerts) {
       md.use(markdownItGithubAlerts);
     }
 
-    // タスクリスト / チェックボックス (- [ ] / - [x])
     if (markdownItCheckbox) {
       md.use(markdownItCheckbox);
     }
 
-    // 見出しアンカー ID (Named Headers)
     if (markdownItNamedHeaders) {
       md.use(markdownItNamedHeaders, {
         slugify: defaultSlugify,
       });
     }
 
-    // カスタムコンテナ (::: warning 等)
     if (markdownItContainer) {
       md.use(markdownItContainer, "warning");
       md.use(markdownItContainer, "info");
@@ -167,19 +168,31 @@ export class MarkdownCompiler {
       md.use(markdownItContainer, "details");
     }
 
-    // Mermaid / PlantUML フェンスブロックのレンダリング。
+    /** デフォルトのフェンスレンダラー関数。 */
     const defaultFence = md.renderer.rules.fence?.bind(md.renderer.rules);
     md.renderer.rules.fence = (tokens, idx, fenceOptions, env, slf) => {
+      /** 対象トークン。 */
       const token = tokens[idx];
+      /** 言語識別子。 */
       const info = token.info ? token.info.trim().toLowerCase() : "";
 
       if (info === "mermaid") {
+        /** URI エンコードされた Mermaid コード。 */
         const encodedCode = encodeURIComponent(token.content);
         return `<div class="md2pdf-mermaid-placeholder" data-code="${encodedCode}"></div>\n`;
       }
 
       if (info === "plantuml" || info === "puml") {
         return `${renderPlantUmlToHtml(token.content, options.plantuml)}\n`;
+      }
+
+      if (
+        info === "tikz" ||
+        ((info === "latex" || info === "tex") && token.content.includes("\\begin{tikzpicture}"))
+      ) {
+        /** URI エンコードされた TikZ コード。 */
+        const encodedCode = encodeURIComponent(token.content);
+        return `<div class="md2pdf-tikz-placeholder" data-code="${encodedCode}"></div>\n`;
       }
 
       if (defaultFence) {
@@ -193,15 +206,17 @@ export class MarkdownCompiler {
 
   /**
    * Markdown 文字列を同期的に HTML 文字列にレンダリングする。
-   * (Mermaid 等の非同期要素はプレースホルダーのまま出力される)。
+   * (Mermaid や TikZ 等の非同期要素はプレースホルダーのまま出力される)。
    *
    * @param markdown - 入力 Markdown テキスト。
    * @param overrideOptions - レンダリング時の一時的な上書きオプション (任意)。
    * @returns レンダリングされた HTML 文字列。
    */
   render(markdown: string, overrideOptions?: MarkdownCompilerOptions): string {
+    /** 有効なコンパイラオプション。 */
     const activeOptions = overrideOptions ? { ...this.options, ...overrideOptions } : this.options;
 
+    /** 処理中 Markdown 文字列。 */
     let processedMd = markdown;
     if (activeOptions.fileReader) {
       processedMd = resolveIncludes(processedMd, activeOptions.fileReader);
@@ -210,6 +225,7 @@ export class MarkdownCompiler {
     processedMd = processPlantUmlBlocks(processedMd, activeOptions.plantuml);
 
     if (overrideOptions) {
+      /** 上書きオプション用の一時的 markdown-it インスタンス。 */
       const tempMd = this.createMarkdownItInstance(activeOptions);
       return tempMd.render(processedMd);
     }
@@ -217,17 +233,22 @@ export class MarkdownCompiler {
   }
 
   /**
-   * Markdown 文字列を非同期にレンダリングし、Mermaid などの非同期要素を完全な SVG / HTML に解決する。
+   * Markdown 文字列を非同期にレンダリングし、Mermaid や TikZ などの非同期要素を完全な SVG / HTML に解決する。
    *
    * @param markdown - 入力 Markdown テキスト。
    * @param overrideOptions - レンダリング時の一時的な上書きオプション (任意)。
    * @returns 非同期要素がすべて解決された完全な HTML 文字列。
    */
   async renderAsync(markdown: string, overrideOptions?: MarkdownCompilerOptions): Promise<string> {
+    /** 有効なコンパイラオプション。 */
     const activeOptions = overrideOptions ? { ...this.options, ...overrideOptions } : this.options;
+    /** 同期レンダリング後の初期 HTML 文字列。 */
     const initialHtml = this.render(markdown, overrideOptions);
 
-    return processMermaidPlaceholders(initialHtml, activeOptions.mermaid);
+    /** 非同期要素置換後の HTML 文字列。 */
+    let html = await processMermaidPlaceholders(initialHtml, activeOptions.mermaid);
+    html = await processTikzPlaceholders(html, activeOptions.tikz);
+    return html;
   }
 
   /**

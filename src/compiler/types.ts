@@ -30,6 +30,30 @@ export interface PlantUmlRenderOptions {
   format?: "svg" | "png";
 }
 
+/** TikZ レンダラーのオプション設定。 */
+export interface TikzRenderOptions {
+  /** TikZ レンダリングサーバーのエンドポイント URL。 */
+  serverUrl?: string;
+
+  /** API 認証キー (任意)。 */
+  apiKey?: string;
+
+  /** 追加のプリアンブル (LaTeX パッケージや TikZ ライブラリ指定)。 */
+  preamble?: string;
+
+  /** レンダリング処理のタイムアウト時間 (ミリ秒)。 */
+  timeoutMs?: number;
+
+  /** デスクトップ環境でローカル TeX 実行を優先するかどうか。 */
+  preferLocalOnDesktop?: boolean;
+
+  /** デスクトップ環境でローカル実行に失敗した場合にリモートへフォールバックするかどうか。 */
+  fallbackToRemoteOnPc?: boolean;
+
+  /** モバイル環境でリモートサーバーを使用するかどうか。 */
+  useRemoteOnMobile?: boolean;
+}
+
 /**
  * MarkdownCompiler の初期化およびコンパイル時オプション。
  */
@@ -76,6 +100,9 @@ export interface MarkdownCompilerOptions {
 
   /** PlantUML レンダリング設定オプション。 */
   plantuml?: PlantUmlRenderOptions;
+
+  /** TikZ レンダリング設定オプション。 */
+  tikz?: TikzRenderOptions;
 }
 
 /**
