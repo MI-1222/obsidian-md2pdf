@@ -1,5 +1,5 @@
 import { Plugin } from "obsidian";
-import { DEFAULT_SETTINGS, type Md2PdfSettings } from "./settings";
+import { DEFAULT_SETTINGS, Md2PdfSettingTab, type Md2PdfSettings } from "./settings";
 import { deepMerge } from "./utils/object";
 
 /** Obsidian Markdown to PDF エクスポートプラグインのエントリポイントクラス。 */
@@ -11,6 +11,7 @@ export default class Md2PdfPlugin extends Plugin {
   async onload(): Promise<void> {
     console.log("Loading obsidian-md2pdf plugin.");
     await this.loadSettings();
+    this.addSettingTab(new Md2PdfSettingTab(this.app, this));
   }
 
   /** プラグインの終了・破棄処理を実行する。 */
