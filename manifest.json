@@ -1,0 +1,9 @@
+{
+  "id": "obsidian-md2pdf",
+  "name": "Markdown to PDF Export",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "Export Markdown notes with TikZ, Mermaid, MathJax, PlantUML and Google Drive images to high quality PDF.",
+  "author": "MI-1222",
+  "isDesktopOnly": false
+}

@@ -4,8 +4,20 @@
   "description": "独自の機能を盛り込んだobsidianのpdfエクスポートのプラグイン。",
   "license": "ISC",
   "author": "MI-1222",
-  "type": "commonjs",
-  "main": "index.js",
+  "type": "module",
+  "main": "main.js",
   "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "builtin-modules": "^5.0.0",
+    "esbuild": "^0.25.0",
+    "tslib": "^2.8.1",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "obsidian": "latest"
   }
 }

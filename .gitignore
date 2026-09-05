@@ -3,6 +3,11 @@
 
 # Node.js
 node_modules/
+npm-debug.log*
+
+# ビルド成果物
+main.js
+*.tsbuildinfo
 
 # 環境変数
 .env*
