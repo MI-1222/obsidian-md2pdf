@@ -18,6 +18,7 @@
     "@types/markdown-it": "^14.2.0",
     "@types/markdown-it-container": "^4.0.1",
     "@types/node": "^22.13.9",
+    "@types/plantuml-encoder": "^1.4.2",
     "builtin-modules": "^5.0.0",
     "esbuild": "^0.25.0",
     "jsdom": "^26.0.0",
@@ -37,6 +38,7 @@
     "markdown-it-mathjax3": "^5.2.0",
     "markdown-it-named-headers": "^0.0.4",
     "mermaid": "^11.17.2",
-    "obsidian": "latest"
+    "obsidian": "latest",
+    "plantuml-encoder": "^1.4.0"
   }
 }

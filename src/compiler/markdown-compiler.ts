@@ -88,6 +88,7 @@ export function resolveIncludes(
 }
 
 import { processMermaidPlaceholders } from "./renderers/mermaid";
+import { processPlantUmlBlocks, renderPlantUmlToHtml } from "./renderers/plantuml";
 
 /** markdown-it コアエンジンおよび各種拡張プラグインを統合した Markdown コンパイラクラス。 */
 export class MarkdownCompiler {
@@ -122,7 +123,7 @@ export class MarkdownCompiler {
    * - タスクリスト / チェックボックス (- [ ] / - [x])
    * - 見出しアンカー ID (Named Headers)
    * - カスタムコンテナ (::: warning 等)
-   * - Mermaid フェンスブロックのプレースホルダー出力 (MarkdownCompiler.renderAsync で置換)
+   * - Mermaid / PlantUML フェンスブロックのレンダリング。
    *
    * @param options - コンパイラオプション。
    * @returns 初期化された MarkdownIt インスタンス。
@@ -166,7 +167,7 @@ export class MarkdownCompiler {
       md.use(markdownItContainer, "details");
     }
 
-    // Mermaid フェンスブロックのプレースホルダー出力 (MarkdownCompiler.renderAsync で置換)
+    // Mermaid / PlantUML フェンスブロックのレンダリング。
     const defaultFence = md.renderer.rules.fence?.bind(md.renderer.rules);
     md.renderer.rules.fence = (tokens, idx, fenceOptions, env, slf) => {
       const token = tokens[idx];
@@ -175,6 +176,10 @@ export class MarkdownCompiler {
       if (info === "mermaid") {
         const encodedCode = encodeURIComponent(token.content);
         return `<div class="md2pdf-mermaid-placeholder" data-code="${encodedCode}"></div>\n`;
+      }
+
+      if (info === "plantuml" || info === "puml") {
+        return `${renderPlantUmlToHtml(token.content, options.plantuml)}\n`;
       }
 
       if (defaultFence) {
@@ -201,6 +206,8 @@ export class MarkdownCompiler {
     if (activeOptions.fileReader) {
       processedMd = resolveIncludes(processedMd, activeOptions.fileReader);
     }
+
+    processedMd = processPlantUmlBlocks(processedMd, activeOptions.plantuml);
 
     if (overrideOptions) {
       const tempMd = this.createMarkdownItInstance(activeOptions);

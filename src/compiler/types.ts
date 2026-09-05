@@ -15,6 +15,21 @@ export interface MermaidRenderOptions {
   darkMode?: boolean;
 }
 
+/** PlantUML レンダラーのオプション設定。 */
+export interface PlantUmlRenderOptions {
+  /**
+   * PlantUML レンダリングサーバーの URL。
+   * @default 'https://www.plantuml.com/plantuml'
+   */
+  serverUrl?: string;
+
+  /**
+   * 出力画像フォーマット ('svg' または 'png')。
+   * @default 'svg'
+   */
+  format?: "svg" | "png";
+}
+
 /**
  * MarkdownCompiler の初期化およびコンパイル時オプション。
  */
@@ -58,6 +73,9 @@ export interface MarkdownCompilerOptions {
    * Mermaid レンダリング設定オプション。
    */
   mermaid?: MermaidRenderOptions;
+
+  /** PlantUML レンダリング設定オプション。 */
+  plantuml?: PlantUmlRenderOptions;
 }
 
 /**
