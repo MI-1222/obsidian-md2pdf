@@ -62,7 +62,8 @@ console.log(greeting);
     expect(html).not.toContain("<script>alert");
   });
 
-  it("markdown-it-mathjax3 による LaTeX 数式がレンダリングされる。", () => {
+  it("数式プラグインによりインライン数式およびブロック数式がレンダリングされる。", () => {
+    /** テスト Markdown 文字列。 */
     const md = `
 インライン数式: $E = mc^2$
 
@@ -72,10 +73,12 @@ $$
 $$
 `;
 
+    /** レンダリング後 HTML 文字列。 */
     const html = compiler.render(md);
 
-    // MathJax3 は <mjx-container> または <math> または SVG/MathML を生成する
-    expect(html).toMatch(/<mjx-container|<math|<svg|mjx-math/i);
+    expect(html).toContain('<span class="math math-inline">$E = mc^2$</span>');
+    expect(html).toContain('<div class="math math-block">');
+    expect(html).toContain("\\frac{a}{b} = c");
   });
 
   it("markdown-it-github-alerts による GitHub スタイルアラートがレンダリングされる。", () => {

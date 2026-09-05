@@ -15,6 +15,55 @@ export class TFile {
   }
 }
 
+/** Obsidian MarkdownView クラスのモック。 */
+export class MarkdownView {
+  file: TFile | null = null;
+  editor = {};
+}
+
+/** Obsidian MenuItem クラスのモック。 */
+export class MenuItem {
+  title: string = "";
+  icon: string = "";
+  section: string = "";
+  clickHandler: (() => void) | null = null;
+
+  setTitle(title: string): this {
+    this.title = title;
+    return this;
+  }
+
+  setIcon(icon: string): this {
+    this.icon = icon;
+    return this;
+  }
+
+  setSection(section: string): this {
+    this.section = section;
+    return this;
+  }
+
+  onClick(cb: () => void): this {
+    this.clickHandler = cb;
+    return this;
+  }
+}
+
+/** Obsidian Menu クラスのモック。 */
+export class Menu {
+  items: MenuItem[] = [];
+
+  addItem(cb: (item: MenuItem) => void): this {
+    const item = new MenuItem();
+    cb(item);
+    this.items.push(item);
+    return this;
+  }
+}
+
+/** Obsidian EventRef 型のモック。 */
+export interface EventRef {}
+
 /** Obsidian App クラスのモック。 */
 export class App {
   vault = {
@@ -26,6 +75,12 @@ export class App {
       writeBinary: async () => {},
     },
     read: async (_file: TFile) => "# Sample Markdown",
+  };
+
+  workspace = {
+    getActiveViewOfType: <T>(_type: unknown): T | null => null,
+    getActiveFile: (): TFile | null => null,
+    on: (_event: string, _callback: Function): EventRef => ({}),
   };
 }
 
@@ -66,6 +121,9 @@ export class Modal {
 export class Plugin {
   app: App;
   manifest: Record<string, unknown>;
+  commands: Record<string, unknown>[] = [];
+  events: EventRef[] = [];
+  ribbonIcons: { icon: string; title: string; callback: () => void }[] = [];
 
   constructor(app: App, manifest: Record<string, unknown>) {
     this.app = app;
@@ -84,10 +142,19 @@ export class Plugin {
 
   addSettingTab(_settingTab: PluginSettingTab): void {}
 
-  addCommand(_command: Record<string, unknown>): void {}
+  addCommand(command: Record<string, unknown>): void {
+    this.commands.push(command);
+  }
 
-  addRibbonIcon(_icon: string, _title: string, _callback: () => void): HTMLElement {
-    return document.createElement("div");
+  registerEvent(eventRef: EventRef): void {
+    this.events.push(eventRef);
+  }
+
+  addRibbonIcon(icon: string, title: string, callback: () => void): HTMLElement {
+    this.ribbonIcons.push({ icon, title, callback });
+    const el = document.createElement("div");
+    el.addEventListener("click", callback);
+    return el;
   }
 }
 

@@ -1,10 +1,10 @@
 import MarkdownIt from "markdown-it";
 import hljs from "highlight.js";
-import markdownItMathjax3 from "markdown-it-mathjax3";
 import markdownItGithubAlerts from "markdown-it-github-alerts";
 import markdownItCheckbox from "markdown-it-checkbox";
 import markdownItContainer from "markdown-it-container";
 import markdownItNamedHeaders from "markdown-it-named-headers";
+import { mathPlugin } from "./plugins/math";
 
 import type { MarkdownCompilerOptions } from "./types";
 
@@ -143,9 +143,7 @@ export class MarkdownCompiler {
       highlight: highlightCode,
     });
 
-    if (markdownItMathjax3) {
-      md.use(markdownItMathjax3);
-    }
+    md.use(mathPlugin);
 
     if (markdownItGithubAlerts) {
       md.use(markdownItGithubAlerts);
