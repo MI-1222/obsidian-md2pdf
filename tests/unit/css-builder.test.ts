@@ -99,5 +99,20 @@ describe("CSS Builder & HTML Document Generator", () => {
 
       expect(html).toContain('<link rel="stylesheet" href="custom.css" />');
     });
+
+    it("layoutSettings が渡された場合に @page ルールが HTML 内のスタイルに反映される。", () => {
+      /** 生成された HTML ドキュメント。 */
+      const html = generateHtmlDocument("<p>content</p>", {
+        layoutSettings: {
+          format: "A3",
+          orientation: "landscape",
+          margin: { top: "30mm", right: "20mm", bottom: "30mm", left: "20mm" },
+        },
+      });
+
+      expect(html).toContain("size: A3 landscape;");
+      expect(html).toContain("margin: 30mm 20mm 30mm 20mm;");
+      expect(html).toContain("@media print");
+    });
   });
 });

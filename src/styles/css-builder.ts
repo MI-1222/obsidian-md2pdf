@@ -1,7 +1,8 @@
 import { BASE_THEME_CSS } from "./themes/base";
 import { MARKDOWN_THEMES } from "./themes/markdown";
 import { HIGHLIGHT_THEMES } from "./themes/highlight";
-import type { StyleSettings } from "../settings/types";
+import { buildPrintCss } from "./themes/print";
+import type { PdfLayoutSettings, StyleSettings } from "../settings/types";
 
 /** HTML ドキュメント構築オプション。 */
 export interface HtmlDocumentOptions {
@@ -9,6 +10,8 @@ export interface HtmlDocumentOptions {
   title?: string;
   /** ドキュメントスタイル設定。 */
   styleSettings?: Partial<StyleSettings>;
+  /** PDF レイアウトおよび用紙・余白設定。 */
+  layoutSettings?: Partial<PdfLayoutSettings>;
   /** 追加で直接注入するカスタム CSS 文字列。 */
   additionalCss?: string;
   /** <head> タグ内に直接追加挿入する HTML 文字列。 */
@@ -41,13 +44,17 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * スタイル設定に基づいて統合された CSS 文字列を生成する。
- * ベース CSS、Markdown テーマ、ハイライトテーマ、カスタム CSS を順にマージする。
+ * スタイル設定および PDF レイアウト設定に基づいて統合された CSS 文字列を生成する。
+ * ベース CSS、Markdown テーマ、ハイライトテーマ、ユーザーカスタム CSS、印刷スタイル (`@page`, `@media print`) を順にマージする。
  *
  * @param settings - スタイル設定オブジェクト。
+ * @param layoutSettings - PDF レイアウト設定オブジェクト。
  * @returns 統合された CSS 文字列。
  */
-export function buildThemeCss(settings: Partial<StyleSettings> = {}): string {
+export function buildThemeCss(
+  settings: Partial<StyleSettings> = {},
+  layoutSettings?: Partial<PdfLayoutSettings>
+): string {
   /** 適用する Markdown テーマ種別。 */
   const themeName = settings.theme || "github-light";
   /** 適用するハイライトテーマ種別。 */
@@ -61,10 +68,12 @@ export function buildThemeCss(settings: Partial<StyleSettings> = {}): string {
   const customCss = settings.customCss
     ? `\n/* --- User Custom CSS --- */\n${settings.customCss}\n`
     : "";
+  /** 印刷用 CSS (`@page` ルールおよび `@media print` スタイル)。 */
+  const printCss = buildPrintCss(layoutSettings);
 
   /** 結合済み CSS。 */
   const combinedCss =
-    `${BASE_THEME_CSS}\n${markdownThemeCss}\n${highlightThemeCss}\n${customCss}`.trim();
+    `${BASE_THEME_CSS}\n${markdownThemeCss}\n${highlightThemeCss}\n${customCss}\n${printCss}`.trim();
   return combinedCss;
 }
 
@@ -82,7 +91,7 @@ export function generateHtmlDocument(
   /** ドキュメントタイトル。 */
   const title = options.title ? escapeHtml(options.title) : "Document";
   /** 統合 CSS 文字列。 */
-  const themeCss = buildThemeCss(options.styleSettings);
+  const themeCss = buildThemeCss(options.styleSettings, options.layoutSettings);
   /** 追加 CSS 文字列。 */
   const additionalCss = options.additionalCss ? `\n${options.additionalCss}` : "";
   /** 安全にエスケープされたスタイル定義。 */
