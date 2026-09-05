@@ -1,0 +1,70 @@
+name: Release Obsidian Plugin
+
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "リリース対象のタグ名 (例: 1.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: リポジトリのチェックアウト
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Node.js のセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: 依存関係のインストール
+        run: npm ci
+
+      - name: 型チェック
+        run: npm run check
+
+      - name: 単体テスト
+        run: npm test
+
+      - name: プラグインのビルド
+        run: npm run build
+
+      - name: リリースアセットの存在確認
+        run: |
+          test -s main.js || (echo "main.js が見つかりません" && exit 1)
+          test -s manifest.json || (echo "manifest.json が見つかりません" && exit 1)
+          test -s styles.css || (echo "styles.css が見つかりません" && exit 1)
+
+      - name: タグ名の解決
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag_name=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag_name=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: GitHub Release の作成 & アセット添付
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.vars.outputs.tag_name }}"
+          gh release create "$TAG" \
+            main.js \
+            manifest.json \
+            styles.css \
+            --title "$TAG" \
+            --generate-notes
