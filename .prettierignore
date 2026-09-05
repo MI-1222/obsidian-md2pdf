@@ -1,0 +1,5 @@
+node_modules
+main.js
+src/types/tikz-api.d.ts
+package-lock.json
+.git
