@@ -14,7 +14,9 @@ import { PdfExportModal } from "./ui/export-modal";
 import { MarkdownCompiler } from "./compiler/markdown-compiler";
 import { generateHtmlDocument } from "./styles/css-builder";
 import { generateDesktopPdf } from "./pdf/desktop-exporter";
+import { printMobileDocument } from "./pdf/mobile-exporter";
 import { savePdfToVault, PdfNotifier } from "./pdf/pdf-saver";
+import { AppPlatform } from "./utils/platform";
 
 /** Obsidian Markdown to PDF エクスポートプラグインのエントリポイントクラス。 */
 export default class Md2PdfPlugin extends Plugin {
@@ -202,21 +204,29 @@ export default class Md2PdfPlugin extends Plugin {
         layoutSettings: this.settings.pdf,
       });
 
-      /** 4. デスクトップ PDF 生成 */
-      const pdfBytes = await generateDesktopPdf(fullHtml, {
-        layoutSettings: this.settings.pdf,
-      });
-
-      /** 5. 出力先パスの決定 (同階層の .pdf) */
+      /** 4. 出力先パスの決定 (同階層の .pdf) */
       const dir =
         file.path.lastIndexOf("/") >= 0 ? file.path.slice(0, file.path.lastIndexOf("/")) : "";
       const defaultOutputPath = dir ? `${dir}/${file.basename}.pdf` : `${file.basename}.pdf`;
 
-      /** 6. Vault 内保存 */
-      const savedPath = await savePdfToVault(this.app, defaultOutputPath, pdfBytes, {
-        overwrite: false,
-        showNotice: true,
-      });
+      /** 保存先パスまたは結果。 */
+      let savedPath = defaultOutputPath;
+
+      if (AppPlatform.isDesktop()) {
+        /** 5. デスクトップ PDF 生成 */
+        const pdfBytes = await generateDesktopPdf(fullHtml, {
+          layoutSettings: this.settings.pdf,
+        });
+
+        /** 6. Vault 内保存 */
+        savedPath = await savePdfToVault(this.app, defaultOutputPath, pdfBytes, {
+          overwrite: false,
+          showNotice: true,
+        });
+      } else {
+        /** 5. モバイル印刷ダイアログの起動 */
+        await printMobileDocument(fullHtml);
+      }
 
       return savedPath;
     } catch (error) {

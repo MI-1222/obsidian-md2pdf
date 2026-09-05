@@ -10,7 +10,9 @@ import type {
 import { MarkdownCompiler } from "../compiler/markdown-compiler";
 import { generateHtmlDocument } from "../styles/css-builder";
 import { generateDesktopPdf } from "../pdf/desktop-exporter";
+import { printMobileDocument } from "../pdf/mobile-exporter";
 import { savePdfToVault, PdfNotifier } from "../pdf/pdf-saver";
+import { AppPlatform } from "../utils/platform";
 
 /** Md2PdfPlugin の最小限のインターフェース。 */
 export interface Md2PdfPluginLike {
@@ -319,16 +321,24 @@ export class PdfExportModal extends Modal {
         layoutSettings: currentLayoutSettings,
       });
 
-      /** 5. デスクトップ PDF 生成 (Electron printToPDF)。 */
-      const pdfBytes = await generateDesktopPdf(fullHtml, {
-        layoutSettings: currentLayoutSettings,
-      });
+      /** 保存先パスまたは結果。 */
+      let savedPath = this.outputPath;
 
-      /** 6. Vault 内への PDF 保存。 */
-      const savedPath = await savePdfToVault(this.plugin.app, this.outputPath, pdfBytes, {
-        overwrite: this.overwrite,
-        showNotice: true,
-      });
+      if (AppPlatform.isDesktop()) {
+        /** 5. デスクトップ PDF 生成 (Electron printToPDF)。 */
+        const pdfBytes = await generateDesktopPdf(fullHtml, {
+          layoutSettings: currentLayoutSettings,
+        });
+
+        /** 6. Vault 内への PDF 保存。 */
+        savedPath = await savePdfToVault(this.plugin.app, this.outputPath, pdfBytes, {
+          overwrite: this.overwrite,
+          showNotice: true,
+        });
+      } else {
+        /** 5. モバイル印刷ダイアログの起動。 */
+        await printMobileDocument(fullHtml);
+      }
 
       /** 7. 設定値の記憶・永続化。 */
       this.plugin.settings.pdf = currentLayoutSettings;
