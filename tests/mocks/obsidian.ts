@@ -379,3 +379,14 @@ export const requestUrl = vi.fn(async (_options: unknown): Promise<RequestUrlRes
     text: "",
   };
 });
+
+/**
+ * Obsidian normalizePath 関数のモック。
+ * バックスラッシュの置換、連続スラッシュの解消、プレフィックス './' の削除を行う。
+ *
+ * @param path - 正規化対象のパス文字列。
+ * @returns 正規化されたパス文字列。
+ */
+export function normalizePath(path: string): string {
+  return path.replace(/\\/g, "/").replace(/\/+/g, "/").replace(/^\.\//, "");
+}
