@@ -92,3 +92,18 @@ if (typeof SVGElement !== "undefined") {
     };
   }
 }
+
+/** URL オブジェクトのポリフィル (jsdom 環境用)。 */
+if (typeof URL !== "undefined") {
+  if (typeof URL.createObjectURL !== "function") {
+    URL.createObjectURL = function (blob: Blob): string {
+      return `blob:mock://${Date.now()}`;
+    };
+  }
+
+  if (typeof URL.revokeObjectURL !== "function") {
+    URL.revokeObjectURL = function (_url: string): void {
+      /** no-op */
+    };
+  }
+}
