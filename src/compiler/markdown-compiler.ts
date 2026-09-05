@@ -87,12 +87,14 @@ export function resolveIncludes(
   return result;
 }
 
-/**　markdown-it コアエンジンおよび各種拡張プラグインを統合した Markdown コンパイラクラス。　*/
+import { processMermaidPlaceholders } from "./renderers/mermaid";
+
+/** markdown-it コアエンジンおよび各種拡張プラグインを統合した Markdown コンパイラクラス。 */
 export class MarkdownCompiler {
-  /** 内部で保持する markdown-it インスタンス。*/
+  /** 内部で保持する markdown-it インスタンス。 */
   private md: MarkdownItInstance;
 
-  /** 現在の設定オプション。*/
+  /** 現在の設定オプション。 */
   private options: MarkdownCompilerOptions;
 
   /**
@@ -115,6 +117,13 @@ export class MarkdownCompiler {
   /**
    * 指定されたオプションに基づいて markdown-it インスタンスを生成・設定する。
    *
+   * - 数式レンダリングプラグイン (MathJax3)
+   * - GitHub スタイルアラート (> [!NOTE] 等)
+   * - タスクリスト / チェックボックス (- [ ] / - [x])
+   * - 見出しアンカー ID (Named Headers)
+   * - カスタムコンテナ (::: warning 等)
+   * - Mermaid フェンスブロックのプレースホルダー出力 (MarkdownCompiler.renderAsync で置換)
+   *
    * @param options - コンパイラオプション。
    * @returns 初期化された MarkdownIt インスタンス。
    */
@@ -127,29 +136,29 @@ export class MarkdownCompiler {
       highlight: highlightCode,
     });
 
-    // 1. 数式レンダリングプラグイン (MathJax3)
+    // 数式レンダリングプラグイン (MathJax3)
     if (markdownItMathjax3) {
       md.use(markdownItMathjax3);
     }
 
-    // 2. GitHub スタイルアラート (> [!NOTE] 等)
+    // GitHub スタイルアラート (> [!NOTE] 等)
     if (markdownItGithubAlerts) {
       md.use(markdownItGithubAlerts);
     }
 
-    // 3. タスクリスト / チェックボックス (- [ ] / - [x])
+    // タスクリスト / チェックボックス (- [ ] / - [x])
     if (markdownItCheckbox) {
       md.use(markdownItCheckbox);
     }
 
-    // 4. 見出しアンカー ID (Named Headers)
+    // 見出しアンカー ID (Named Headers)
     if (markdownItNamedHeaders) {
       md.use(markdownItNamedHeaders, {
         slugify: defaultSlugify,
       });
     }
 
-    // 5. カスタムコンテナ (::: warning 等)
+    // カスタムコンテナ (::: warning 等)
     if (markdownItContainer) {
       md.use(markdownItContainer, "warning");
       md.use(markdownItContainer, "info");
@@ -157,11 +166,29 @@ export class MarkdownCompiler {
       md.use(markdownItContainer, "details");
     }
 
+    // Mermaid フェンスブロックのプレースホルダー出力 (MarkdownCompiler.renderAsync で置換)
+    const defaultFence = md.renderer.rules.fence?.bind(md.renderer.rules);
+    md.renderer.rules.fence = (tokens, idx, fenceOptions, env, slf) => {
+      const token = tokens[idx];
+      const info = token.info ? token.info.trim().toLowerCase() : "";
+
+      if (info === "mermaid") {
+        const encodedCode = encodeURIComponent(token.content);
+        return `<div class="md2pdf-mermaid-placeholder" data-code="${encodedCode}"></div>\n`;
+      }
+
+      if (defaultFence) {
+        return defaultFence(tokens, idx, fenceOptions, env, slf);
+      }
+      return slf.renderToken(tokens, idx, fenceOptions);
+    };
+
     return md;
   }
 
   /**
-   * Markdown 文字列を HTML 文字列にレンダリングする。
+   * Markdown 文字列を同期的に HTML 文字列にレンダリングする。
+   * (Mermaid 等の非同期要素はプレースホルダーのまま出力される)。
    *
    * @param markdown - 入力 Markdown テキスト。
    * @param overrideOptions - レンダリング時の一時的な上書きオプション (任意)。
@@ -180,6 +207,20 @@ export class MarkdownCompiler {
       return tempMd.render(processedMd);
     }
     return this.md.render(processedMd);
+  }
+
+  /**
+   * Markdown 文字列を非同期にレンダリングし、Mermaid などの非同期要素を完全な SVG / HTML に解決する。
+   *
+   * @param markdown - 入力 Markdown テキスト。
+   * @param overrideOptions - レンダリング時の一時的な上書きオプション (任意)。
+   * @returns 非同期要素がすべて解決された完全な HTML 文字列。
+   */
+  async renderAsync(markdown: string, overrideOptions?: MarkdownCompilerOptions): Promise<string> {
+    const activeOptions = overrideOptions ? { ...this.options, ...overrideOptions } : this.options;
+    const initialHtml = this.render(markdown, overrideOptions);
+
+    return processMermaidPlaceholders(initialHtml, activeOptions.mermaid);
   }
 
   /**

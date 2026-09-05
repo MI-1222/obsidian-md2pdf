@@ -36,6 +36,7 @@
     "markdown-it-include": "^2.0.0",
     "markdown-it-mathjax3": "^5.2.0",
     "markdown-it-named-headers": "^0.0.4",
+    "mermaid": "^11.17.2",
     "obsidian": "latest"
   }
 }

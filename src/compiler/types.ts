@@ -1,4 +1,21 @@
 /**
+ * Mermaid レンダラーのオプション設定。
+ */
+export interface MermaidRenderOptions {
+  /**
+   * Mermaid のカラーテーマ。
+   * @default 'default'
+   */
+  theme?: "default" | "dark" | "forest" | "neutral" | "base";
+
+  /**
+   * ダークモードを適用するかどうか。
+   * @default false
+   */
+  darkMode?: boolean;
+}
+
+/**
  * MarkdownCompiler の初期化およびコンパイル時オプション。
  */
 export interface MarkdownCompilerOptions {
@@ -36,6 +53,11 @@ export interface MarkdownCompilerOptions {
    * Obsidian Vault やファイルシステムからの読み込みを差し替え可能にする。
    */
   fileReader?: (path: string) => string;
+
+  /**
+   * Mermaid レンダリング設定オプション。
+   */
+  mermaid?: MermaidRenderOptions;
 }
 
 /**
