@@ -66,6 +66,17 @@ if (typeof HTMLElement !== "undefined") {
       return this.createEl("span", o);
     };
   }
+
+  if (!HTMLElement.prototype.setText) {
+    HTMLElement.prototype.setText = function (val: string | DocumentFragment): void {
+      if (typeof val === "string") {
+        this.textContent = val;
+      } else {
+        this.empty();
+        this.appendChild(val);
+      }
+    };
+  }
 }
 
 // jsdom 環境における SVG 要素のポリフィル (Mermaid レイアウト計算用)。

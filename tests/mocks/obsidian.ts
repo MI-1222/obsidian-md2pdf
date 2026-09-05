@@ -1,11 +1,65 @@
+/** Obsidian TFile クラスのモック。 */
+export class TFile {
+  path: string;
+  name: string;
+  basename: string;
+  extension: string;
+
+  constructor(path: string = "test.md") {
+    this.path = path;
+    const lastSlash = path.lastIndexOf("/");
+    this.name = lastSlash >= 0 ? path.slice(lastSlash + 1) : path;
+    const lastDot = this.name.lastIndexOf(".");
+    this.basename = lastDot >= 0 ? this.name.slice(0, lastDot) : this.name;
+    this.extension = lastDot >= 0 ? this.name.slice(lastDot + 1) : "";
+  }
+}
+
 /** Obsidian App クラスのモック。 */
 export class App {
   vault = {
     adapter: {
       read: async () => "",
       write: async () => {},
+      exists: async () => false,
+      mkdir: async () => {},
+      writeBinary: async () => {},
     },
+    read: async (_file: TFile) => "# Sample Markdown",
   };
+}
+
+/** Obsidian Modal クラスのモック。 */
+export class Modal {
+  app: App;
+  scope: unknown = {};
+  containerEl: HTMLElement;
+  contentEl: HTMLElement;
+  titleEl: HTMLElement;
+
+  constructor(app: App) {
+    this.app = app;
+    this.containerEl = document.createElement("div");
+    this.containerEl.className = "modal-container";
+    this.titleEl = document.createElement("div");
+    this.titleEl.className = "modal-title";
+    this.contentEl = document.createElement("div");
+    this.contentEl.className = "modal-content";
+    this.containerEl.appendChild(this.titleEl);
+    this.containerEl.appendChild(this.contentEl);
+  }
+
+  open(): void {
+    this.onOpen();
+  }
+
+  close(): void {
+    this.onClose();
+  }
+
+  onOpen(): void {}
+
+  onClose(): void {}
 }
 
 /** Obsidian Plugin クラスのモック。 */
